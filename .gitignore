@@ -1,0 +1,40 @@
+# Output/data directories
+game_data/
+docs/
+logs/
+out/
+
+# Legacy library folder (dependencies now fetched by CMake)
+libs/
+lib/
+
+# General
+**/build/
+**/.vs/
+.idea/
+.vscode/
+.vs/
+Thumbs.db
+.DS_Store
+
+# CMake-generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.dir/
+Makefile
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+ZERO_CHECK*
+ALL_BUILD*
+INSTALL*
+
+# Temporary and backup files
+*.out
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
