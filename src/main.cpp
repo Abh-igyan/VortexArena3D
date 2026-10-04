@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
-// main.cpp -- Beyblade main program -- rz -- 2024-08-08
-// Copyright (c) 2024, Ricky Zhang.
+// main.cpp -- VortexArena3D Main Program
+// Copyright (c) 2026, Abhigyan Tiwari.
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <functional>
@@ -17,7 +17,7 @@ int main() {
 
     GameEngine* game = new GameEngine();
 
-    if (!game->init("Battlebeyz", 1600, 900)) {
+    if (!game->init("VortexArena3D", 1600, 900)) {
         return -1;
     }
 
