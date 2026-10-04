@@ -32,9 +32,14 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path package -Force
-          Copy-Item build\Release\VortexArena3D.exe -Destination package\
-          Copy-Item -Recurse assets -Destination package\assets
-          Copy-Item -Recurse game_data -Destination package\game_data
+          $exe = Get-ChildItem -Path build -Recurse -Filter "VortexArena3D.exe" | Select-Object -First 1
+          if (-not $exe) {
+              $exe = Get-ChildItem -Path build -Recurse -Filter "*.exe" | Where-Object { $_.Name -notlike "*test*" } | Select-Object -First 1
+          }
+          Write-Host "Found executable at: $($exe.FullName)"
+          Copy-Item $exe.FullName -Destination package\VortexArena3D.exe
+          if (Test-Path assets) { Copy-Item -Recurse assets -Destination package\assets }
+          if (Test-Path game_data) { Copy-Item -Recurse game_data -Destination package\game_data }
           Copy-Item README.md -Destination package\
           Compress-Archive -Path package\* -DestinationPath VortexArena3D-Windows-x64.zip
 
@@ -73,9 +78,14 @@ jobs:
       - name: Package Linux Release
         run: |
           mkdir -p package
-          cp build/VortexArena3D package/
-          cp -r assets package/assets
-          cp -r game_data package/game_data
+          EXE=$(find build -type f -name "VortexArena3D" -perm /111 | head -n 1)
+          if [ -z "$EXE" ]; then
+              EXE=$(find build -type f -perm /111 ! -name "*test*" | head -n 1)
+          fi
+          echo "Found binary at: $EXE"
+          cp "$EXE" package/VortexArena3D
+          [ -d assets ] && cp -r assets package/assets || true
+          [ -d game_data ] && cp -r game_data package/game_data || true
           cp README.md package/
           tar -czvf VortexArena3D-Linux-x64.tar.gz -C package .
 
