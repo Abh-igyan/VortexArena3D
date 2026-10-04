@@ -1,6 +1,6 @@
 # VortexArena3D: 3D Physics Simulation & Arena Combat Game Engine
 
-![VortexArena3D Gameplay & Physics Demo](assets/VortexArena3D_Demo.gif)
+![VortexArena3D Live Demo](assets/demo.gif)
 
 **VortexArena3D** is a high-performance 3D game engine and rigid-body combat simulation built from scratch in **Modern C++ (C++20)**. 
 
