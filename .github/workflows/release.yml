@@ -10,39 +10,47 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
-    name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            artifact_name: VortexArena3D-Windows-x64.zip
-            binary_path: build/Release/VortexArena3D.exe
-            package_cmd: |
-              mkdir package
-              copy build\Release\VortexArena3D.exe package\
-              xcopy /E /I assets package\assets
-              xcopy /E /I game_data package\game_data
-              copy README.md package\
-              Compress-Archive -Path package\* -DestinationPath VortexArena3D-Windows-x64.zip
-          - os: ubuntu-latest
-            artifact_name: VortexArena3D-Linux-x64.tar.gz
-            binary_path: build/VortexArena3D
-            package_cmd: |
-              mkdir package
-              cp build/VortexArena3D package/
-              cp -r assets package/assets
-              cp -r game_data package/game_data
-              cp README.md package/
-              tar -czvf VortexArena3D-Linux-x64.tar.gz -C package .
-
+  build-windows:
+    name: Build Windows x64
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: deps-windows-${{ hashFiles('CMakeLists.txt') }}
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Release
+        run: cmake --build build --config Release --parallel
+
+      - name: Package Windows Release
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path package -Force
+          Copy-Item build\Release\VortexArena3D.exe -Destination package\
+          Copy-Item -Recurse assets -Destination package\assets
+          Copy-Item -Recurse game_data -Destination package\game_data
+          Copy-Item README.md -Destination package\
+          Compress-Archive -Path package\* -DestinationPath VortexArena3D-Windows-x64.zip
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VortexArena3D-Windows-x64
+          path: VortexArena3D-Windows-x64.zip
+
+  build-linux:
+    name: Build Linux x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake pkg-config \
@@ -54,45 +62,56 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build/_deps
-          key: deps-release-${{ runner.os }}-${{ hashFiles('CMakeLists.txt') }}
+          key: deps-linux-${{ hashFiles('CMakeLists.txt') }}
 
       - name: Configure CMake
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build Release Binary
+      - name: Build Release
         run: cmake --build build --config Release --parallel
 
-      - name: Package Release
-        shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
-        run: ${{ matrix.package_cmd }}
+      - name: Package Linux Release
+        run: |
+          mkdir -p package
+          cp build/VortexArena3D package/
+          cp -r assets package/assets
+          cp -r game_data package/game_data
+          cp README.md package/
+          tar -czvf VortexArena3D-Linux-x64.tar.gz -C package .
 
-      - name: Upload Artifact
+      - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_name }}
+          name: VortexArena3D-Linux-x64
+          path: VortexArena3D-Linux-x64.tar.gz
 
   publish-release:
     name: Publish GitHub Release
-    needs: build-release
+    needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all build artifacts
+      - name: Download Windows Artifact
         uses: actions/download-artifact@v4
         with:
+          name: VortexArena3D-Windows-x64
+          path: release-artifacts
+
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: VortexArena3D-Linux-x64
           path: release-artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || 'v1.0.0' }}
-          name: VortexArena3D ${{ github.ref_name || 'v1.0.0' }} Playable Release
+          tag_name: ${{ github.ref_name }}
+          name: VortexArena3D ${{ github.ref_name }} Playable Release
           draft: false
           prerelease: false
           generate_release_notes: true
           files: |
-            release-artifacts/VortexArena3D-Windows-x64.zip/VortexArena3D-Windows-x64.zip
-            release-artifacts/VortexArena3D-Linux-x64.tar.gz/VortexArena3D-Linux-x64.tar.gz
+            release-artifacts/VortexArena3D-Windows-x64.zip
+            release-artifacts/VortexArena3D-Linux-x64.tar.gz
